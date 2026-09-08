@@ -20,8 +20,15 @@ const progressContainer = document.getElementById("progressContainer");
 const currentTime = document.getElementById("currentTime");
 const duration = document.getElementById("duration");
 const playIcon = document.querySelector(".play-icon");
+const moodClasses = [
+  "peaceful", "tired", "thoughtful", "motivated", "love", "escape",
+  "hopeful", "mixed", "fear", "anger", "happy", "longing"
+];
+
+let loadingTimer;
 
 document.body.classList.add("home");
+history.replaceState({ screen: "home" }, "", window.location.href);
 
 const moods={
 
@@ -805,54 +812,61 @@ function pauseMusic() {
   updatePlayButton(false);
 }
 
+function setSong(mood, songIndex) {
+  const song = moods[mood].songs[songIndex];
+
+  songTitle.textContent = song.title;
+  songArtist.textContent = song.artist;
+  musicPlayer.src = song.file;
+  musicPlayer.load();
+  progress.style.width = "0%";
+  currentTime.textContent = "0:00";
+  duration.textContent = "0:00";
+  updatePlayButton(false);
+}
+
+function showResult(mood, songIndex) {
+  clearTimeout(loadingTimer);
+  loadingScreen.classList.add("hidden");
+  resultScreen.classList.remove("hidden");
+  container.classList.add("hidden");
+
+  document.body.classList.remove("home", ...moodClasses);
+  document.body.classList.add(mood);
+
+  resultEmoji.innerHTML = moods[mood].emoji;
+  resultTitle.textContent = moods[mood].title;
+  resultQuote.textContent = moods[mood].quote;
+
+  if (musicPlayer.src !== new URL(moods[mood].songs[songIndex].file, window.location.href).href) {
+    setSong(mood, songIndex);
+  }
+}
+
+function showHome() {
+  clearTimeout(loadingTimer);
+  pauseMusic();
+  musicPlayer.currentTime = 0;
+  musicPlayer.src = "";
+  loadingScreen.classList.add("hidden");
+  resultScreen.classList.add("hidden");
+  container.classList.remove("hidden");
+  document.body.classList.remove(...moodClasses);
+  document.body.classList.add("home");
+}
+
 cards.forEach((card) => {
   card.addEventListener("click", () => {
     const mood = card.dataset.mood;
+    const songIndex = Math.floor(Math.random() * moods[mood].songs.length);
+
+    setSong(mood, songIndex);
+    startMusic();
+    history.pushState({ screen: "result", mood, songIndex }, "", window.location.href);
 
     container.classList.add("hidden");
     loadingScreen.classList.remove("hidden");
-
-    setTimeout(() => {
-      loadingScreen.classList.add("hidden");
-      resultScreen.classList.remove("hidden");
-
-      document.body.classList.remove(
-        "home",
-        "peaceful",
-        "tired",
-        "thoughtful",
-        "motivated",
-        "love",
-        "escape",
-        "hopeful",
-        "mixed",
-        "fear",
-        "anger",
-        "happy",
-        "longing"
-      );
-
-      document.body.classList.add(mood);
-
-      resultEmoji.innerHTML = moods[mood].emoji;
-      resultTitle.textContent = moods[mood].title;
-      resultQuote.textContent = moods[mood].quote;
-
-      const songs = moods[mood].songs;
-      const randomSong = songs[Math.floor(Math.random() * songs.length)];
-
-      songTitle.textContent = randomSong.title;
-      songArtist.textContent = randomSong.artist;
-      musicPlayer.src = randomSong.file;
-      musicPlayer.load();
-
-      progress.style.width = "0%";
-      currentTime.textContent = "0:00";
-      duration.textContent = "0:00";
-      updatePlayButton(false);
-
-      startMusic();
-    }, 1500);
+    loadingTimer = setTimeout(() => showResult(mood, songIndex), 1500);
   });
 });
 
@@ -904,27 +918,15 @@ progressContainer.addEventListener("click", (event) => {
   musicPlayer.currentTime = percent * musicPlayer.duration;
 });
 
-backBtn.addEventListener("click", () => {
-  pauseMusic();
-  musicPlayer.currentTime = 0;
-  musicPlayer.src = "";
+backBtn.addEventListener("click", () => history.back());
 
-  document.body.classList.remove(
-    "peaceful",
-    "tired",
-    "thoughtful",
-    "motivated",
-    "love",
-    "escape",
-    "hopeful",
-    "mixed",
-    "fear",
-    "anger",
-    "happy",
-    "longing"
-  );
+window.addEventListener("popstate", (event) => {
+  const state = event.state;
 
-  document.body.classList.add("home");
-  resultScreen.classList.add("hidden");
-  container.classList.remove("hidden");
+  if (state?.screen === "result") {
+    showResult(state.mood, state.songIndex);
+    return;
+  }
+
+  showHome();
 });
