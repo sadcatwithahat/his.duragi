@@ -1855,7 +1855,16 @@ body.longing::before{
   }
 
   body.home .blob {
-    display: none;
+    display: block;
+    opacity: 0.58;
+  }
+
+  body.home .blob1 {
+    background: #34215f;
+  }
+
+  body.home .blob2 {
+    background: #172d59;
   }
 
   body.home .container {
